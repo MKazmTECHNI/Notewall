@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} | Notewall{% endblock %}
+
+{% block content %}
+<div class="editor">
+  <header class="editor-header">
+    <h1>{{ title }}</h1>
+  </header>
+  
+  {% if is_new and not slug %}
+  <form action="{{ url_for('create_note') }}" method="POST" class="editor-form">
+    <div class="form-group">
+      <label for="slug">Filename (no spaces, use - or _)</label>
+      <input type="text" id="slug" name="slug" required 
+             pattern="[a-zA-Z0-9_\-]+" placeholder="my-new-note">
+    </div>
+    <div class="form-group">
+      <label for="content">Content (Markdown)</label>
+      <textarea id="content" name="content" rows="20" 
+                placeholder="# My Note&#10;&#10;Start writing...">{{ content }}</textarea>
+    </div>
+    <div class="form-actions">
+      <a href="{{ url_for('home') }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary">Create Note</button>
+    </div>
+  </form>
+  {% else %}
+  <form action="{{ url_for('save_note_route', slug=slug) }}" method="POST" class="editor-form">
+    <div class="form-group">
+      <label for="content">Content (Markdown)</label>
+      <textarea id="content" name="content" rows="20">{{ content }}</textarea>
+    </div>
+    <div class="form-actions">
+      <a href="{{ url_for('view_note', slug=slug) if not is_new else url_for('home') }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary">Save</button>
+    </div>
+  </form>
+  {% endif %}
+</div>
+
+<script>
+  // No auto-resize - fixed height from CSS
+</script>
+{% endblock %}

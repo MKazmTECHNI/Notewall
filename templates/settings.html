@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Settings | Notewall{% endblock %}
+
+{% block content %}
+<div class="settings">
+  <header class="settings-header">
+    <h1>⚙️ Settings</h1>
+    <p class="subtitle">Customize your Notewall experience</p>
+  </header>
+  
+  <form action="{{ url_for('save_settings_route') }}" method="POST" class="settings-form">
+    
+    <section class="settings-section">
+      <h2>General</h2>
+      
+      <div class="form-group">
+        <label for="site_title">Site Title</label>
+        <input type="text" id="site_title" name="site_title" value="{{ current.site_title }}">
+      </div>
+      
+      <div class="form-group">
+        <label for="theme">Theme</label>
+        <select id="theme" name="theme">
+          <option value="dark" {{ 'selected' if current.theme == 'dark' }}>Dark</option>
+          <option value="light" {{ 'selected' if current.theme == 'light' }}>Light</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="accent_color">Accent Color</label>
+        <div class="color-input">
+          <input type="color" id="accent_color" name="accent_color" value="{{ current.accent_color }}">
+          <input type="text" id="accent_color_text" value="{{ current.accent_color }}" readonly>
+        </div>
+      </div>
+    </section>
+    
+    <section class="settings-section">
+      <h2>Typography</h2>
+      
+      <div class="form-group">
+        <label for="font_size">Content Font Size (px)</label>
+        <input type="number" id="font_size" name="font_size" value="{{ current.font_size }}" min="12" max="24">
+      </div>
+      
+      <div class="form-group">
+        <label for="editor_font_size">Editor Font Size (px)</label>
+        <input type="number" id="editor_font_size" name="editor_font_size" value="{{ current.editor_font_size }}" min="12" max="24">
+      </div>
+    </section>
+    
+    <section class="settings-section">
+      <h2>Editor</h2>
+      
+      <div class="form-group">
+        <label for="editor_height">Editor Height (px)</label>
+        <input type="number" id="editor_height" name="editor_height" value="{{ current.editor_height }}" min="200" max="1000" step="50">
+      </div>
+      
+      <div class="form-group checkbox-group">
+        <label>
+          <input type="checkbox" name="show_line_numbers" {{ 'checked' if current.show_line_numbers }}>
+          <span>Show line numbers in editor</span>
+        </label>
+      </div>
+      
+      <div class="form-group checkbox-group">
+        <label>
+          <input type="checkbox" name="auto_save" {{ 'checked' if current.auto_save }}>
+          <span>Auto-save while editing (experimental)</span>
+        </label>
+      </div>
+    </section>
+    
+    <div class="form-actions">
+      <a href="{{ url_for('home') }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary">Save Settings</button>
+    </div>
+  </form>
+</div>
+
+<script>
+  // Sync color picker with text input
+  const colorInput = document.getElementById('accent_color');
+  const colorText = document.getElementById('accent_color_text');
+  colorInput.addEventListener('input', () => {
+    colorText.value = colorInput.value;
+  });
+</script>
+{% endblock %}

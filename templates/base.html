@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Notewall{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    :root {
+      --accent: {{ settings.accent_color }};
+      --accent-hover: {{ settings.accent_color }}dd;
+      --font-size: {{ settings.font_size }}px;
+      --editor-font-size: {{ settings.editor_font_size }}px;
+      --editor-height: {{ settings.editor_height }}px;
+    }
+    {% if settings.theme == 'light' %}
+    :root {
+      --bg: #f5f5f5;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #e5e5e5;
+      --text: #1a1a1a;
+      --text-muted: #666;
+      --border: #ddd;
+    }
+    {% endif %}
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <a href="{{ url_for('home') }}" class="logo">📝 {{ settings.site_title }}</a>
+      </div>
+      <nav class="nav">
+        {% for note in notes %}
+        <a href="{{ url_for('view_note', slug=note.slug) }}" class="nav-link">{{ note.name }}</a>
+        {% endfor %}
+      </nav>
+      <div class="sidebar-footer">
+        <a href="{{ url_for('new_note') }}" class="btn btn-primary">+ New Note</a>
+        <a href="{{ url_for('settings_page') }}" class="btn btn-icon" title="Settings">⚙️</a>
+      </div>
+    </aside>
+    <main class="main">
+      <div class="container">
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+</body>
+</html>

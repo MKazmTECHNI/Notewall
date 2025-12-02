@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Home | Notewall{% endblock %}
+
+{% block content %}
+<div class="home">
+  <header class="home-header">
+    <h1>Your Notes</h1>
+    <p class="subtitle">Select a note from the sidebar or create a new one</p>
+  </header>
+  <div class="notes-grid">
+    {% if notes %}
+      {% for note in notes %}
+      <a href="{{ url_for('view_note', slug=note.slug) }}" class="note-card">
+        <h3>{{ note.name }}</h3>
+        <span class="note-card-arrow">→</span>
+      </a>
+      {% endfor %}
+    {% else %}
+      <p class="empty-state">No notes yet. Create your first note!</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
