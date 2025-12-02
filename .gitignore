@@ -1,5 +1,4 @@
 # Notewall - Personal files (not part of the project)
-*.md
 !notes/*.md
 
 # Python
