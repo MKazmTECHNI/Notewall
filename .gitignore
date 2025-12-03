@@ -1,5 +1,8 @@
 # Notewall - Personal files (not part of the project)
-!notes/*.md
+# Ignore all notes but allow two preview files used by the app
+notes/*
+# for own use: this command will ignore ur preview files or sum
+# git update-index --skip-worktree notes/welcome.md notes/markdown-cheatsheet.md
 
 # Python
 __pycache__/
