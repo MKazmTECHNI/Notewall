@@ -36,6 +36,10 @@ source .venv/Scripts/activate   # Or on Linux: .venv/bin/activate
 # Install dependencies (only 3)
 pip install -r requirements.txt
 
+# Create .env file and write inside:
+NOTEWALL_PASSWORD=yourpassword
+SECRET_KEY=somerandomstring
+
 # just run the file and server starts
 python app.py
 ```
@@ -85,7 +89,7 @@ MIT License — feel free to use this however you want, I own this as much as yo
 
 Tbh the site strongly vibe-coded cuz i just wanted simple webapp for my notes, so don't gimme no credits. I wouldn't mind seeing your implementation tho.
 
-I've made it in mind to host on my raspi so in next update there's gonna be like atrociously simple authentication. Again, feel free to do whatever you want with it, I do appreciate any feedback tho.
+I've made it in mind to host on my raspi so it's simplest as I can. Again, feel free to do whatever you want with it, I do appreciate any feedback tho.
 
 ---
 

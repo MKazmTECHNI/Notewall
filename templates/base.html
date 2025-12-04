@@ -37,8 +37,13 @@
         {% endfor %}
       </nav>
       <div class="sidebar-footer">
+        {% if logged_in %}
         <a href="{{ url_for('new_note') }}" class="btn btn-primary">+ New Note</a>
         <a href="{{ url_for('settings_page') }}" class="btn btn-icon" title="Settings">⚙️</a>
+        <a href="{{ url_for('logout') }}" class="btn btn-icon" title="Logout">🚪</a>
+        {% else %}
+        <a href="{{ url_for('login') }}" class="btn btn-primary">Login</a>
+        {% endif %}
       </div>
     </aside>
     <main class="main">

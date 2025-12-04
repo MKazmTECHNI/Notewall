@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}Login - {{ settings.site_title }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 300px; margin: 100px auto; text-align: center;">
+  <h1>🔐 Login</h1>
+  {% if error %}
+  <p style="color: #ef4444;">{{ error }}</p>
+  {% endif %}
+  <form method="POST" style="margin-top: 20px;">
+    <input type="password" name="password" placeholder="Password" 
+           style="width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text);">
+    <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+  </form>
+</div>
+{% endblock %}

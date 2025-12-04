@@ -2,7 +2,10 @@ import os
 import re
 import json
 from pathlib import Path
-from flask import Flask, render_template, request, redirect, url_for, abort
+from dotenv import load_dotenv
+from flask import Flask, render_template, request, redirect, url_for, abort, session
+
+load_dotenv()
 
 import markdown
 from markdown.extensions.codehilite import CodeHiliteExtension
@@ -11,6 +14,10 @@ from markdown.extensions.tables import TableExtension
 from markdown.extensions.toc import TocExtension
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'change-me-in-production')
+
+# Simple password auth - set NOTEWALL_PASSWORD env variable
+ADMIN_PASSWORD = os.environ.get('NOTEWALL_PASSWORD', 'admin')
 
 # Notes directory (notes/ folder inside Notewall, or parent folder if notes/ doesn't exist)
 NOTEWALL_DIR = Path(__file__).parent
@@ -55,7 +62,7 @@ def save_settings(settings):
 # Make settings available to all templates
 @app.context_processor
 def inject_settings():
-    return {'settings': load_settings()}
+    return {'settings': load_settings(), 'logged_in': session.get('logged_in', False)}
 
 # Markdown processor
 md = markdown.Markdown(extensions=[
@@ -111,7 +118,34 @@ def slugify(text):
     return text
 
 
+def require_auth(f):
+    """Simple auth check decorator."""
+    from functools import wraps
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('logged_in'):
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated
+
+
 # Routes
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        if request.form.get('password') == ADMIN_PASSWORD:
+            session['logged_in'] = True
+            return redirect(url_for('home'))
+        return render_template('auth.html', error='Wrong password', notes=get_notes())
+    return render_template('auth.html', notes=get_notes())
+
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    return redirect(url_for('home'))
+
 
 @app.route('/')
 def home():
@@ -134,6 +168,7 @@ def view_note(slug):
 
 
 @app.route('/cms/new')
+@require_auth
 def new_note():
     """Form to create a new note."""
     notes = get_notes()
@@ -141,6 +176,7 @@ def new_note():
 
 
 @app.route('/cms/create', methods=['POST'])
+@require_auth
 def create_note():
     """Create a new note."""
     slug = slugify(request.form.get('slug', ''))
@@ -154,6 +190,7 @@ def create_note():
 
 
 @app.route('/cms/edit/<slug>')
+@require_auth
 def edit_note(slug):
     """Form to edit an existing note."""
     content, exists = read_note(slug)
@@ -163,6 +200,7 @@ def edit_note(slug):
 
 
 @app.route('/cms/save/<slug>', methods=['POST'])
+@require_auth
 def save_note_route(slug):
     """Save an edited note."""
     content = request.form.get('content', '')
@@ -171,6 +209,7 @@ def save_note_route(slug):
 
 
 @app.route('/cms/delete/<slug>', methods=['POST'])
+@require_auth
 def delete_note_route(slug):
     """Delete a note."""
     delete_note(slug)
@@ -178,6 +217,7 @@ def delete_note_route(slug):
 
 
 @app.route('/settings')
+@require_auth
 def settings_page():
     """Settings page."""
     notes = get_notes()
@@ -186,6 +226,7 @@ def settings_page():
 
 
 @app.route('/settings/save', methods=['POST'])
+@require_auth
 def save_settings_route():
     """Save settings."""
     settings = {
