@@ -16,11 +16,19 @@ A lightweight, file-based Markdown notes app with a simple CMS. Built with Pytho
 - **Lightweight** — Just Python + Flask, minimal dependencies
 - **Portable** — Run anywhere with Python installed
 
-<!-- ## 📸 Screenshots
+## 📸 Screenshots
 
-im on arch and my ss broke, alr? ill put them up on my main pc
+### Formated file Preview
 
-*Coming soon* -->
+## ![formated file preview](image.png)
+
+### Editing file Preview
+
+## ![edit file preview](image-1.png)
+
+### Settings Preview
+
+##![settings preview](image-2.png)
 
 ## 🚀 Quick Start
 
@@ -45,6 +53,8 @@ python app.py
 ```
 
 Opens on http://localhost:5000
+
+You can also delete images, they're just for this preview up there.
 
 #### ! - Beware, it might differ based on your OS. - !
 

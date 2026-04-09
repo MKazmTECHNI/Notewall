@@ -83,18 +83,35 @@ def get_notes():
     return notes
 
 
+def normalize_line_endings(text):
+    """Normalize all line endings to LF."""
+    return text.replace('\r\n', '\n').replace('\r', '\n')
+
+
 def read_note(slug):
     """Read a markdown file, return (content, exists)."""
     filepath = NOTES_DIR / f"{slug}.md"
     if filepath.exists():
-        return filepath.read_text(encoding='utf-8'), True
+        # Read with newline='' to preserve original newlines, then normalize.
+        with open(filepath, 'r', encoding='utf-8', newline='') as f:
+            raw = f.read()
+        normalized = normalize_line_endings(raw)
+
+        # Auto-repair legacy files that ended up with malformed Windows newlines.
+        if raw != normalized:
+            filepath.write_text(normalized, encoding='utf-8', newline='\n')
+
+        return normalized, True
     return '', False
 
 
 def save_note(slug, content):
     """Save content to a markdown file."""
     filepath = NOTES_DIR / f"{slug}.md"
-    filepath.write_text(content, encoding='utf-8')
+    # Normalize line endings to avoid duplicated blank lines on Windows
+    # when browser CRLF content is saved repeatedly.
+    normalized = normalize_line_endings(content)
+    filepath.write_text(normalized, encoding='utf-8', newline='\n')
 
 
 def delete_note(slug):
