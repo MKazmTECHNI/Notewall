@@ -512,3 +512,33 @@ select:focus {
 html { scroll-behavior: smooth; }
 
 
+
+.note-main {
+    max-width: calc(100% - 250px - 2rem);
+}
+.note-content {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+.prose {
+    word-break: break-word;
+}
+
+
+.note-main {
+    max-width: 100%;
+    min-width: 0;
+}
+.note-rendered pre, .prose pre {
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+
+.prose img {
+    max-width: 100%;
+    height: auto;
+}
+
