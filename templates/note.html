@@ -1,21 +1,67 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}{{ title }} | Notewall{% endblock %}
 
 {% block content %}
-<article class="note">
-  <header class="note-header">
-    <h1>{{ title }}</h1>
-    <div class="note-actions">
-      <a href="{{ url_for('edit_note', slug=slug) }}" class="btn btn-secondary">Edit</a>
-      <form action="{{ url_for('delete_note_route', slug=slug) }}" method="POST" style="display:inline" 
-            onsubmit="return confirm('Delete this note?')">
-        <button type="submit" class="btn btn-danger">Delete</button>
-      </form>
+<div class="note-layout">
+  <article class="note note-main">
+    <header class="note-header">
+      <h1>{{ title }}</h1>
+      <div class="note-actions">
+        <button id="toggle-source-btn" class="btn btn-secondary" onclick="toggleSource()">Source</button>
+        <button id="copy-source-btn" class="btn btn-secondary" onclick="copySource()" style="display:none;">Copy Markdown</button>
+        <a href="{{ url_for('edit_note', slug=slug) }}" class="btn btn-secondary">Edit</a>
+        <form action="{{ url_for('delete_note_route', slug=slug) }}" method="POST" style="display:inline" onsubmit="return confirm('Delete this note?')">
+          <button type="submit" class="btn btn-danger">Delete</button>
+        </form>
+      </div>
+    </header>
+    <div id="note-rendered" class="note-content prose">
+      {{ content | safe }}
     </div>
-  </header>
-  <div class="note-content prose">
-    {{ content | safe }}
-  </div>
-</article>
+    <div id="note-source" class="note-content source" style="display:none;">
+      <pre style="white-space: pre-wrap; overflow-x: auto;"><code>{{ raw_content | e }}</code></pre>
+    </div>
+  </article>
+
+  {% if toc and toc != '<div class="toc">\n<ul></ul>\n</div>' %}
+  <aside class="note-sidebar">
+    <div class="toc-wrapper">
+      <h3>Spis treści</h3>
+      {{ toc | safe }}
+    </div>
+  </aside>
+  {% endif %}
+</div>
+
+<script>
+  function toggleSource() {
+    const rendered = document.getElementById('note-rendered');
+    const source = document.getElementById('note-source');
+    const btn = document.getElementById('toggle-source-btn');
+    const copyBtn = document.getElementById('copy-source-btn');
+    
+    if (rendered.style.display === 'none') {
+      rendered.style.display = 'block';
+      source.style.display = 'none';
+      btn.textContent = 'Source';
+      copyBtn.style.display = 'none';
+    } else {
+      rendered.style.display = 'none';
+      source.style.display = 'block';
+      btn.textContent = 'Preview';
+      copyBtn.style.display = 'inline-block';
+    }
+  }
+
+  function copySource() {
+    const sourceText = document.querySelector('#note-source code').textContent;
+    navigator.clipboard.writeText(sourceText).then(() => {
+      const copyBtn = document.getElementById('copy-source-btn');
+      const originalText = copyBtn.textContent;
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => { copyBtn.textContent = originalText; }, 2000);
+    });
+  }
+</script>
 {% endblock %}

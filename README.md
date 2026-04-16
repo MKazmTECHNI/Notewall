@@ -1,4 +1,4 @@
-# 📝 Notewall
+# ??? Notewall
 
 A lightweight, file-based Markdown notes app with a simple CMS. Built with Python/Flask.
 
@@ -6,33 +6,25 @@ A lightweight, file-based Markdown notes app with a simple CMS. Built with Pytho
 ![Flask](https://img.shields.io/badge/Flask-3.0+-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-## ✨ Features
+## ? Features
 
-- **File-based storage** — Notes are plain `.md` files, no database needed
-- **Markdown rendering** — Full support with syntax highlighting
-- **Simple CMS** — Create, edit, and delete notes from the browser
-- **Dark/Light themes** — Easy on the eyes (not lightmode, tfu, I struggle not to delete it)
-- **Customizable** — Accent color, font sizes, editor height
-- **Lightweight** — Just Python + Flask, minimal dependencies
-- **Portable** — Run anywhere with Python installed
+- **File-based storage** � Notes are plain .md files, no database needed
+- **Markdown rendering** � Full support with syntax highlighting, automatic TOC, and subtopic toggle
+- **Upload Images** � Image upload system integrated directly into the editor
+- **Simple CMS** � Create, edit, and delete notes from the browser
+- **Source Copy feature** � Preview markdown source code without entering edit mode
+- **Dark/Light themes** � Easy on the eyes (not lightmode, tfu, I struggle not to delete it)
+- **Customizable** � Accent color, font sizes, editor height
+- **Lightweight** � Just Python + Flask, minimal dependencies
+- **Portable** � Run anywhere with Python installed
 
-## 📸 Screenshots
+## ?? Screenshots
 
-### Formated file Preview
+*(Screenshots coming soon...)*
 
-## ![formated file preview](image.png)
+## ?? Quick Start
 
-### Editing file Preview
-
-## ![edit file preview](image-1.png)
-
-### Settings Preview
-
-##![settings preview](image-2.png)
-
-## 🚀 Quick Start
-
-```bash
+`ash
 # Just clone the repo
 git clone https://github.com/yourusername/notewall.git
 cd notewall
@@ -41,68 +33,27 @@ cd notewall
 python -m venv .venv
 source .venv/Scripts/activate   # Or on Linux: .venv/bin/activate
 
-# Install dependencies (only 3)
+# Install dependencies
 pip install -r requirements.txt
 
 # Create .env file and write inside:
 NOTEWALL_PASSWORD=yourpassword
 SECRET_KEY=somerandomstring
+PORT=5000
 
 # just run the file and server starts
 python app.py
-```
+`
 
-Opens on http://localhost:5000
-
-You can also delete images, they're just for this preview up there.
+Opens on http://localhost:5000 (or whichever port you configured).
+Images uploaded to notes are saved within the static/uploads directory.
 
 #### ! - Beware, it might differ based on your OS. - !
 
-## 📁 Project Structure
+## ?? Settings
 
-```
-Notewall/
-├── app.py              # Main Flask application
-├── requirements.txt    # Python dependencies
-├── settings.json       # User settings (auto-generated)
-├── notes/              # Your markdown files go here
-│   ├── welcome.md
-│   └── ...
-├── static/
-│   └── style.css       # Styling
-└── templates/          # HTML templates
-    ├── base.html
-    ├── home.html
-    ├── note.html
-    ├── editor.html
-    ├── settings.html
-    └── 404.html
-```
+Click the ?? gear icon in the sidebar to customize. Settings are saved to settings.json.
 
-## ⚙️ Settings
+## ?? License
 
-Click the ⚙️ gear icon in the sidebar to customize:
-
-- **Site Title** — Name shown in the header
-- **Theme** — Dark or Light mode
-- **Accent Color** — Customize buttons and links
-- **Font Sizes** — Content and editor font sizes
-- **Editor Height** — How tall the editor textarea is
-
-Settings are saved to `settings.json`.
-
-## 📄 License
-
-MIT License — feel free to use this however you want, I own this as much as you do.
-
-# Some my yapping
-
-Tbh the site strongly vibe-coded cuz i just wanted simple webapp for my notes, so don't gimme no credits. I wouldn't mind seeing your implementation tho.
-
-I've made it in mind to host on my raspi so it's simplest as I can. Again, feel free to do whatever you want with it, I do appreciate any feedback tho.
-
----
-
-MKazm
-
-<small>(Im really not a vibe-coder i swear)</small>
+MIT License � feel free to use this however you want, I own this as much as you do.

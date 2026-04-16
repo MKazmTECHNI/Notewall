@@ -25,6 +25,10 @@ NOTES_DIR = NOTEWALL_DIR / 'notes'
 if not NOTES_DIR.exists():
     NOTES_DIR = NOTEWALL_DIR.parent  # Fallback to parent for existing setups
 
+UPLOAD_DIR = NOTEWALL_DIR / 'static' / 'uploads'
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_DIR
+
 SETTINGS_FILE = NOTEWALL_DIR / 'settings.json'
 
 # Default settings
@@ -36,6 +40,7 @@ DEFAULT_SETTINGS = {
     'font_size': 16,
     'editor_font_size': 15,
     'show_line_numbers': False,
+    'show_subtopics': True,
     'auto_save': False
 }
 
@@ -64,13 +69,7 @@ def save_settings(settings):
 def inject_settings():
     return {'settings': load_settings(), 'logged_in': session.get('logged_in', False)}
 
-# Markdown processor
-md = markdown.Markdown(extensions=[
-    'fenced_code',
-    'tables',
-    'toc',
-    CodeHiliteExtension(css_class='highlight', guess_lang=False),
-])
+# Markdown processor is created dynamically in render_markdown
 
 
 def get_notes():
@@ -123,8 +122,26 @@ def delete_note(slug):
 
 def render_markdown(text):
     """Convert markdown to HTML."""
-    md.reset()
-    return md.convert(text)
+    settings = load_settings()
+    toc_depth = '1-2' if settings.get('show_subtopics', True) else '1'
+    
+    md = markdown.Markdown(
+        extensions=[
+            'fenced_code',
+            'tables',
+            'toc',
+            CodeHiliteExtension(css_class='highlight', guess_lang=False)
+        ],
+        extension_configs={
+            'toc': {
+                'toc_depth': toc_depth,
+            }
+        }
+    )
+    
+    html = md.convert(text)
+    toc = getattr(md, 'toc', '')
+    return html, toc
 
 
 def slugify(text):
@@ -178,10 +195,10 @@ def view_note(slug):
     if not exists:
         return redirect(url_for('edit_note', slug=slug))
     
-    html = render_markdown(content)
+    html, toc = render_markdown(content)
     title = slug.replace('-', ' ').replace('_', ' ').title()
     notes = get_notes()
-    return render_template('note.html', title=title, content=html, slug=slug, notes=notes)
+    return render_template('note.html', title=title, content=html, toc=toc, raw_content=content, slug=slug, notes=notes)
 
 
 @app.route('/cms/new')
@@ -233,6 +250,28 @@ def delete_note_route(slug):
     return redirect(url_for('home'))
 
 
+@app.route('/cms/upload', methods=['POST'])
+@require_auth
+def upload_image():
+    """Upload image for markdown editor."""
+    if 'image' not in request.files:
+        return {'error': 'No field named image'}, 400
+    
+    file = request.files['image']
+    if file.filename == '':
+        return {'error': 'Empty filename'}, 400
+        
+    from werkzeug.utils import secure_filename
+    import uuid
+    
+    ext = os.path.splitext(file.filename)[1]
+    filename = secure_filename(f"{uuid.uuid4().hex}{ext}")
+    
+    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    url = url_for('static', filename=f"uploads/{filename}")
+    return {'url': url}
+
+
 @app.route('/settings')
 @require_auth
 def settings_page():
@@ -254,6 +293,7 @@ def save_settings_route():
         'font_size': int(request.form.get('font_size', 16)),
         'editor_font_size': int(request.form.get('editor_font_size', 15)),
         'show_line_numbers': request.form.get('show_line_numbers') == 'on',
+        'show_subtopics': request.form.get('show_subtopics') == 'on',
         'auto_save': request.form.get('auto_save') == 'on'
     }
     save_settings(settings)
@@ -267,6 +307,11 @@ def not_found(e):
 
 
 if __name__ == '__main__':
-    print(f"📝 Notewall running at http://localhost:5000")
-    print(f"📁 Notes directory: {NOTES_DIR}")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    print(f"đź“ť Notewall running at http://localhost:{port}")
+    print(f"đź“ Notes directory: {NOTES_DIR}")
+    app.run(debug=True, host='0.0.0.0', port=port)
+
+
+
+

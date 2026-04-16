@@ -1,45 +1,212 @@
-{% extends "base.html" %}
-
-{% block title %}{{ title }} | Notewall{% endblock %}
-
+{% extends "base.html" %} {% block title %}{{ title }} | Notewall{% endblock %}
 {% block content %}
-<div class="editor">
-  <header class="editor-header">
-    <h1>{{ title }}</h1>
-  </header>
-  
-  {% if is_new and not slug %}
-  <form action="{{ url_for('create_note') }}" method="POST" class="editor-form">
-    <div class="form-group">
-      <label for="slug">Filename (no spaces, use - or _)</label>
-      <input type="text" id="slug" name="slug" required 
-             pattern="[a-zA-Z0-9_\-]+" placeholder="my-new-note">
+<div class="note-layout">
+  <div class="editor note-main">
+    <header
+      class="editor-header"
+      style="display: flex; justify-content: space-between; align-items: center"
+    >
+      <h1>{{ title }}</h1>
+      <button
+        type="button"
+        class="btn btn-secondary"
+        id="upload-img-btn"
+        title="Upload Image"
+      >
+        &#128193; Insert Image
+      </button>
+      <input
+        type="file"
+        id="img-upload-input"
+        style="display: none"
+        accept="image/*"
+      />
+    </header>
+
+    {% if is_new and not slug %}
+    <form
+      action="{{ url_for('create_note') }}"
+      method="POST"
+      class="editor-form"
+    >
+      <div class="form-group">
+        <label for="slug">Filename (no spaces, use - or _)</label>
+        <input
+          type="text"
+          id="slug"
+          name="slug"
+          required
+          pattern="[a-zA-Z0-9_\-]+"
+          placeholder="my-new-note"
+        />
+      </div>
+      <div class="form-group">
+        <label for="content">Content (Markdown)</label>
+        <textarea
+          id="content"
+          name="content"
+          rows="20"
+          placeholder="# My Note&#10;&#10;Start writing..."
+          oninput="generateEditorTOC()"
+        >
+{{ content }}</textarea
+        >
+      </div>
+      <div class="form-actions">
+        <a href="{{ url_for('home') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Create Note</button>
+      </div>
+    </form>
+    {% else %}
+    <form
+      action="{{ url_for('save_note_route', slug=slug) }}"
+      method="POST"
+      class="editor-form"
+    >
+      <div class="form-group">
+        <label for="content">Content (Markdown)</label>
+        <textarea
+          id="content"
+          name="content"
+          rows="20"
+          oninput="generateEditorTOC()"
+        >
+{{ content }}</textarea
+        >
+      </div>
+      <div class="form-actions">
+        <a
+          href="{{ url_for('view_note', slug=slug) if not is_new else url_for('home') }}"
+          class="btn btn-secondary"
+          >Cancel</a
+        >
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+    {% endif %}
+  </div>
+
+  <aside class="note-sidebar">
+    <div class="toc-wrapper">
+      <h3>Spis treści</h3>
+      <div id="editor-toc-list" class="toc"></div>
     </div>
-    <div class="form-group">
-      <label for="content">Content (Markdown)</label>
-      <textarea id="content" name="content" rows="20" 
-                placeholder="# My Note&#10;&#10;Start writing...">{{ content }}</textarea>
-    </div>
-    <div class="form-actions">
-      <a href="{{ url_for('home') }}" class="btn btn-secondary">Cancel</a>
-      <button type="submit" class="btn btn-primary">Create Note</button>
-    </div>
-  </form>
-  {% else %}
-  <form action="{{ url_for('save_note_route', slug=slug) }}" method="POST" class="editor-form">
-    <div class="form-group">
-      <label for="content">Content (Markdown)</label>
-      <textarea id="content" name="content" rows="20">{{ content }}</textarea>
-    </div>
-    <div class="form-actions">
-      <a href="{{ url_for('view_note', slug=slug) if not is_new else url_for('home') }}" class="btn btn-secondary">Cancel</a>
-      <button type="submit" class="btn btn-primary">Save</button>
-    </div>
-  </form>
-  {% endif %}
+  </aside>
 </div>
 
 <script>
-  // No auto-resize - fixed height from CSS
+  // TOC Generation
+  function generateEditorTOC() {
+    const textarea = document.getElementById('content');
+    if(!textarea) return;
+    const text = textarea.value;
+    const lines = text.split('\n');
+    const tocContainer = document.getElementById('editor-toc-list');
+    if (!tocContainer) return;
+
+    const showSubtopics = {{ 'true' if settings.show_subtopics else 'false' }};
+    let html = '<ul>';
+    let currentLevel = 1;
+    let hasItems = false;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const match = line.match(/^(#{1,2})\s+(.*)/);
+        if (match) {
+            const level = match[1].length;
+            if (!showSubtopics && level > 1) continue;
+
+            const title = match[2];
+            hasItems = true;
+
+            if (level > currentLevel) {
+               html += '<ul>'.repeat(level - currentLevel);
+            } else if (level < currentLevel) {
+               html += '</ul>'.repeat(currentLevel - level);
+            }
+            currentLevel = level;
+
+            html += `<li><a href="#" onclick="scrollToLine(${i}); return false;">${title}</a></li>`;
+        }
+    }
+
+    if (currentLevel > 1) {
+       html += '</ul>'.repeat(currentLevel - 1);
+    }
+    html += '</ul>';
+
+    if (!hasItems) {
+       tocContainer.innerHTML = '';
+    } else {
+       tocContainer.innerHTML = html;
+    }
+  }
+
+  function scrollToLine(lineNumber) {
+    const textarea = document.getElementById('content');
+    if(!textarea) return;
+    const lines = textarea.value.split('\n');
+    let charCount = 0;
+    for(let i=0; i<lineNumber; i++) {
+        charCount += lines[i].length + 1;
+    }
+    textarea.focus();
+    if(textarea.setSelectionRange) {
+        textarea.setSelectionRange(charCount, charCount);
+    }
+    const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 24;
+    textarea.scrollTop = lineNumber * lineHeight;
+  }
+
+  // Image Upload Logic
+  const uploadBtn = document.getElementById('upload-img-btn');
+  const uploadInput = document.getElementById('img-upload-input');
+
+  if(uploadBtn && uploadInput) {
+      uploadBtn.addEventListener('click', () => {
+          uploadInput.click();
+      });
+
+      uploadInput.addEventListener('change', async (e) => {
+          const file = e.target.files[0];
+          if(!file) return;
+
+          const formData = new FormData();
+          formData.append('image', file);
+
+          try {
+              uploadBtn.disabled = true;
+              uploadBtn.innerHTML = 'Uploading...';
+
+              const res = await fetch("{{ url_for('upload_image') }}", {
+                  method: 'POST',
+                  body: formData
+              });
+
+              if(!res.ok) throw new Error('Upload failed');
+
+              const data = await res.json();
+              const mdImg = `\n![Image](${data.url})\n`;
+
+              const textarea = document.getElementById('content');
+              const start = textarea.selectionStart;
+              const end = textarea.selectionEnd;
+
+              textarea.value = textarea.value.substring(0, start) + mdImg + textarea.value.substring(end);
+              textarea.selectionStart = textarea.selectionEnd = start + mdImg.length;
+              textarea.focus();
+              generateEditorTOC();
+
+          } catch(err) {
+              alert('Failed to upload image. Make sure you are logged in.');
+          } finally {
+              uploadBtn.disabled = false;
+              uploadBtn.innerHTML = '&#128193; Insert Image';
+              uploadInput.value = '';
+          }
+      });
+  }
+
+  window.addEventListener('load', generateEditorTOC);
 </script>
 {% endblock %}

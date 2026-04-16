@@ -53,6 +53,13 @@
     <section class="settings-section">
       <h2>Editor</h2>
       
+      <div class="form-group checkbox-group">
+        <label>
+          <input type="checkbox" name="show_subtopics" {{ 'checked' if current.show_subtopics }}>
+          <span>Show subtopics (## only) in Table of Contents</span>
+        </label>
+      </div>
+      
       <div class="form-group">
         <label for="editor_height">Editor Height (px)</label>
         <input type="number" id="editor_height" name="editor_height" value="{{ current.editor_height }}" min="200" max="1000" step="50">
