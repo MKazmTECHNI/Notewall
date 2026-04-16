@@ -251,8 +251,9 @@ def delete_note_route(slug):
 
 
 @app.route('/cms/upload', methods=['POST'])
+@app.route('/cms/upload/<note_slug>', methods=['POST'])
 @require_auth
-def upload_image():
+def upload_image(note_slug=None):
     """Upload image for markdown editor."""
     if 'image' not in request.files:
         return {'error': 'No field named image'}, 400
@@ -267,8 +268,16 @@ def upload_image():
     ext = os.path.splitext(file.filename)[1]
     filename = secure_filename(f"{uuid.uuid4().hex}{ext}")
     
-    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-    url = url_for('static', filename=f"uploads/{filename}")
+    if note_slug:
+        safe_slug = slugify(note_slug)
+        folder = os.path.join(app.config['UPLOAD_FOLDER'], safe_slug)
+        os.makedirs(folder, exist_ok=True)
+        file.save(os.path.join(folder, filename))
+        url = url_for('static', filename=f"uploads/{safe_slug}/{filename}")
+    else:
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        url = url_for('static', filename=f"uploads/{filename}")
+        
     return {'url': url}
 
 

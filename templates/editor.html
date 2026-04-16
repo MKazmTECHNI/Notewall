@@ -178,7 +178,27 @@
               uploadBtn.disabled = true;
               uploadBtn.innerHTML = 'Uploading...';
 
-              const res = await fetch("{{ url_for('upload_image') }}", {
+              const slugInput = document.getElementById('slug');
+              let uploadUrl = "{{ url_for('upload_image') }}";
+              let targetSlug = "";
+
+              if (slugInput) {
+                  if (!slugInput.value.trim()) {
+                      alert('Please specify a filename for the note first before uploading an image.');
+                      uploadBtn.disabled = false;
+                      uploadBtn.innerHTML = '&#128193; Insert Image';
+                      return;
+                  }
+                  targetSlug = "/" + encodeURIComponent(slugInput.value.trim());
+              } else if ("{{ slug }}") {
+                  targetSlug = "/" + encodeURIComponent("{{ slug }}");
+              }
+
+              if (targetSlug && targetSlug !== "/") {
+                  uploadUrl += targetSlug;
+              }
+
+              const res = await fetch(uploadUrl, {
                   method: 'POST',
                   body: formData
               });
