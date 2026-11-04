@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Search: ' ~ query if query else 'Search' }} | Notewall{% endblock %}
+
+{% block content %}
+<div class="search-page">
+  <header class="settings-header">
+    <h1>Search</h1>
+  </header>
+
+  <form action="{{ url_for('search') }}" method="GET" class="search-form" role="search">
+    <input type="search" name="q" value="{{ query }}" placeholder="Search your notes…" aria-label="Search notes" autofocus>
+    <button type="submit" class="btn btn-primary">Search</button>
+  </form>
+
+  {% if query %}
+  <p class="search-count">
+    {{ results | length }} {{ 'note' if results | length == 1 else 'notes' }} found for <strong>{{ query }}</strong>
+  </p>
+
+  <ol class="search-results">
+    {% for r in results %}
+    <li>
+      <a class="search-result" href="{{ url_for('view_note', slug=r.slug) }}{% if r.first_term %}#:~:text={{ r.first_term | urlencode }}{% endif %}">
+        <h3>{% if logged_in and r.visibility == 'private' %}🔒 {% elif logged_in and r.visibility == 'shared' %}👥 {% endif %}{{ r.title }}</h3>
+        {% for snippet in r.snippets %}
+        <p class="search-snippet">{{ snippet }}</p>
+        {% endfor %}
+      </a>
+    </li>
+    {% else %}
+    <li class="empty-state">Nothing matched. Try fewer or shorter words.</li>
+    {% endfor %}
+  </ol>
+  {% endif %}
+</div>
+{% endblock %}

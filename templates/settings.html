@@ -79,12 +79,92 @@
         </label>
       </div>
     </section>
-    
+
     <div class="form-actions">
       <a href="{{ url_for('home') }}" class="btn btn-secondary">Cancel</a>
       <button type="submit" class="btn btn-primary">Save Settings</button>
     </div>
   </form>
+
+  <section class="settings-section" id="viewers">
+    <h2>Viewers</h2>
+    <p class="settings-help">
+      People you share notes with. Each viewer gets an access key: they can paste it on the
+      login page or open their personal link. Give viewers roles (like <code>family</code>) to
+      share a note with a whole group at once. Pick who sees what with the <strong>Access</strong>
+      button on a note.
+    </p>
+
+    {% if new_key %}
+    <div class="key-reveal" role="status">
+      <p><strong>Access key for {{ new_key.name }}</strong> — copy it now, it won't be shown again.</p>
+      <div class="key-row">
+        <code id="new-key">{{ new_key.key }}</code>
+        <button type="button" class="btn btn-secondary" data-copy="{{ new_key.key }}">Copy key</button>
+      </div>
+      <div class="key-row">
+        <code>{{ new_key.link }}</code>
+        <button type="button" class="btn btn-secondary" data-copy="{{ new_key.link }}">Copy link</button>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if viewers %}
+    <ul class="viewer-list">
+      {% for v in viewers %}
+      <li class="viewer-item">
+        <div class="viewer-main">
+          <strong>
+            {{ v.name }}
+            {% if v.expired %}<span class="badge badge-expired">Expired</span>
+            {% elif v.expires %}<span class="badge badge-private">Until {{ v.expires }}</span>{% endif %}
+          </strong>
+          <span class="viewer-notes">
+            Last seen {{ v.last_seen | ago }}{% if v.recent %} · opened
+            {% for slug, seen in v.recent %}<a href="{{ url_for('view_note', slug=slug) }}" title="{{ seen }}">{{ slug }}</a> <small>({{ seen | ago }})</small>{{ ', ' if not loop.last }}{% endfor %}{% endif %}
+          </span>
+          <span class="viewer-notes">
+            {% set shared = v.notes | selectattr('visibility', 'equalto', 'shared') | list %}
+            {% if shared %}Can also read: {% for n in shared %}<a href="{{ url_for('view_note', slug=n.slug) }}">{{ n.slug }}</a>{{ ', ' if not loop.last }}{% endfor %}
+            {% else %}Only public notes so far{% endif %}
+          </span>
+        </div>
+        <form action="{{ url_for('update_viewer', viewer_id=v.id) }}" method="POST" class="viewer-roles">
+          <input type="text" name="roles" value="{{ v.roles | join(', ') }}" placeholder="roles, comma separated" aria-label="Roles for {{ v.name }}">
+          <input type="date" name="expires" value="{{ v.expires }}" aria-label="Access until (empty means never)" title="Access until (leave empty for no end date)">
+          <button type="submit" class="btn btn-secondary">Save</button>
+        </form>
+        <div class="viewer-actions">
+          <form action="{{ url_for('regenerate_viewer_key', viewer_id=v.id) }}" method="POST" onsubmit="return confirm('Make a new key for this viewer? The old key and link stop working.')">
+            <button type="submit" class="btn btn-secondary">New key</button>
+          </form>
+          <form action="{{ url_for('delete_viewer', viewer_id=v.id) }}" method="POST" onsubmit="return confirm('Remove this viewer? They lose access to every shared note.')">
+            <button type="submit" class="btn btn-danger">Remove</button>
+          </form>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty-state">No viewers yet.</p>
+    {% endif %}
+
+    <form action="{{ url_for('add_viewer') }}" method="POST" class="viewer-add">
+      <div class="form-group">
+        <label for="viewer_name">Name</label>
+        <input type="text" id="viewer_name" name="name" required placeholder="Pookie">
+      </div>
+      <div class="form-group">
+        <label for="viewer_roles">Roles (optional)</label>
+        <input type="text" id="viewer_roles" name="roles" placeholder="family, school">
+      </div>
+      <div class="form-group">
+        <label for="viewer_expires">Access until (optional)</label>
+        <input type="date" id="viewer_expires" name="expires">
+      </div>
+      <button type="submit" class="btn btn-primary">Add viewer</button>
+    </form>
+  </section>
 </div>
 
 <script>
@@ -93,6 +173,19 @@
   const colorText = document.getElementById('accent_color_text');
   colorInput.addEventListener('input', () => {
     colorText.value = colorInput.value;
+  });
+
+  document.querySelectorAll('[data-copy]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const label = btn.textContent;
+      try {
+        await navigator.clipboard.writeText(btn.dataset.copy);
+        btn.textContent = 'Copied!';
+      } catch (err) {
+        btn.textContent = 'Copy failed';
+      }
+      setTimeout(() => { btn.textContent = label; }, 1500);
+    });
   });
 </script>
 {% endblock %}

@@ -40,13 +40,19 @@
           placeholder="my-new-note"
         />
       </div>
+      <div class="form-group checkbox-group">
+        <label>
+          <input type="checkbox" name="private">
+          <span>🔒 Private note (only visible when logged in)</span>
+        </label>
+      </div>
       <div class="form-group">
         <label for="content">Content (Markdown)</label>
         <textarea
           id="content"
           name="content"
           rows="20"
-          placeholder="# My Note&#10;&#10;Start writing..."
+          placeholder="# My Note&#10;&#10;Start writing... Link other notes with [[Note name]]."
           oninput="generateEditorTOC()"
         >
 {{ content }}</textarea
@@ -74,13 +80,32 @@
 {{ content }}</textarea
         >
       </div>
+      <input type="hidden" name="custom_code_present" value="1">
+      <details class="custom-code"{% if note.css or note.js %} open{% endif %}>
+        <summary>Custom code for this note</summary>
+        <p class="settings-help">Only loaded on this note, for everyone who can read it. Only paste code you trust.</p>
+        <div class="form-group">
+          <label for="note_css">CSS</label>
+          <textarea id="note_css" name="note_css" rows="5" class="settings-code" spellcheck="false" placeholder=".prose h1 { color: hotpink; }">{{ note.css }}</textarea>
+        </div>
+        <div class="form-group">
+          <label for="note_js">JavaScript</label>
+          <textarea id="note_js" name="note_js" rows="5" class="settings-code" spellcheck="false" placeholder="console.log('Hello from this note');">{{ note.js }}</textarea>
+        </div>
+      </details>
       <div class="form-actions">
+        {% if request.args.get('saved') %}
+        <span class="inline-status">Saved</span>
+        {% endif %}
         <a
           href="{{ url_for('view_note', slug=slug) if not is_new else url_for('home') }}"
           class="btn btn-secondary"
           >Cancel</a
         >
-        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="submit" name="action" value="save" class="btn btn-secondary">Save</button>
+        {% if not is_new %}
+        <button type="submit" name="action" value="update" class="btn btn-primary">Update</button>
+        {% endif %}
       </div>
     </form>
     {% endif %}

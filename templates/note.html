@@ -2,66 +2,445 @@
 
 {% block title %}{{ title }} | Notewall{% endblock %}
 
+{% block head %}
+{% if access.css %}
+<style id="note-custom-css">{{ access.css | safe }}</style>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <div class="note-layout">
   <article class="note note-main">
     <header class="note-header">
-      <h1>{{ title }}</h1>
+      <h1>
+        {{ title }}
+        {% if logged_in %}
+        <span class="badge badge-private" id="access-badge"{% if access.visibility == 'public' %} style="display:none"{% endif %}>
+          {%- if access.visibility == 'private' %}🔒 Private{% elif access.visibility == 'shared' %}👥 Shared{% endif -%}
+        </span>
+        {% endif %}
+      </h1>
       <div class="note-actions">
+        {% if not logged_in %}
         <button id="toggle-source-btn" class="btn btn-secondary" onclick="toggleSource()">Source</button>
         <button id="copy-source-btn" class="btn btn-secondary" onclick="copySource()" style="display:none;">Copy Markdown</button>
+        {% endif %}
+
+        <label class="toggle-check" title="Reverse the display order of # topics (does not change the note)">
+          <input type="checkbox" id="invert-toggle">
+          <span>Invert</span>
+        </label>
+
+        {% if logged_in %}
+        <div class="access-control">
+          <button type="button" class="btn btn-secondary" id="access-btn" aria-expanded="false" aria-controls="access-panel">Access</button>
+          <div class="access-panel" id="access-panel" hidden>
+            <fieldset class="access-levels">
+              <legend>Who can read this note</legend>
+              <label><input type="radio" name="access-level" value="public"{% if access.visibility == 'public' %} checked{% endif %}> <span>🌐 <strong>Everyone</strong></span></label>
+              <label><input type="radio" name="access-level" value="shared"{% if access.visibility == 'shared' %} checked{% endif %}> <span>👥 <strong>Chosen viewers</strong></span></label>
+              <label><input type="radio" name="access-level" value="private"{% if access.visibility == 'private' %} checked{% endif %}> <span>🔒 <strong>Only me</strong></span></label>
+            </fieldset>
+
+            <div class="access-shared" id="access-shared"{% if access.visibility != 'shared' %} hidden{% endif %}>
+              {% if all_viewers %}
+              <h4>Viewers</h4>
+              {% for viewer_id, v in all_viewers | dictsort %}
+              <label class="access-option">
+                <input type="checkbox" name="access-viewer" value="{{ viewer_id }}"{% if viewer_id in access.viewers %} checked{% endif %}>
+                <span>{{ v.name }}</span>
+                {% if v.roles %}<small>{{ v.roles | join(', ') }}</small>{% endif %}
+              </label>
+              {% endfor %}
+              {% if all_roles %}
+              <h4>Roles</h4>
+              {% for role in all_roles %}
+              <label class="access-option">
+                <input type="checkbox" name="access-role" value="{{ role }}"{% if role in access.roles %} checked{% endif %}>
+                <span>{{ role }}</span>
+              </label>
+              {% endfor %}
+              {% endif %}
+              {% else %}
+              <p class="access-empty">No viewers yet. <a href="{{ url_for('settings_page') }}#viewers">Add one in Settings</a>.</p>
+              {% endif %}
+            </div>
+            <p class="access-status" id="access-status" aria-live="polite"></p>
+          </div>
+        </div>
+        <a href="{{ url_for('note_history', slug=slug) }}" class="btn btn-secondary">History</a>
         <a href="{{ url_for('edit_note', slug=slug) }}" class="btn btn-secondary">Edit</a>
         <form action="{{ url_for('delete_note_route', slug=slug) }}" method="POST" style="display:inline" onsubmit="return confirm('Delete this note?')">
           <button type="submit" class="btn btn-danger">Delete</button>
         </form>
+        {% endif %}
       </div>
     </header>
+
     <div id="note-rendered" class="note-content prose">
       {{ content | safe }}
     </div>
+
+    {% if not logged_in %}
     <div id="note-source" class="note-content source" style="display:none;">
       <pre style="white-space: pre-wrap; overflow-x: auto;"><code>{{ raw_content | e }}</code></pre>
     </div>
+    {% endif %}
   </article>
 
-  {% if toc and toc != '<div class="toc">\n<ul></ul>\n</div>' %}
-  <aside class="note-sidebar">
+  <aside class="note-sidebar" id="note-sidebar"{% if not has_toc and not backlinks %} style="display:none"{% endif %}>
+    {% if has_toc %}
     <div class="toc-wrapper">
       <h3>Spis treści</h3>
-      {{ toc | safe }}
+      <div id="note-toc">{{ toc | safe }}</div>
     </div>
+    {% endif %}
+    {% if backlinks %}
+    <div class="toc-wrapper backlinks">
+      <h3>Linked from</h3>
+      <ul>
+        {% for b in backlinks %}
+        <li><a href="{{ url_for('view_note', slug=b.slug) }}">{{ b.name }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
   </aside>
-  {% endif %}
 </div>
 
 <script>
+  window.NOTEWALL_CAN_RUN = {{ 'true' if logged_in else 'false' }};
+
+  let noteRaw = {{ raw_content | tojson }};
+  const accessUrl = {{ url_for('note_access_route', slug=slug) | tojson }};
+
+  const rendered = document.getElementById('note-rendered');
+  const source = document.getElementById('note-source');
+  const sourceBtn = document.getElementById('toggle-source-btn');
+  const copyBtn = document.getElementById('copy-source-btn');
+  const invertToggle = document.getElementById('invert-toggle');
+  const accessBtn = document.getElementById('access-btn');
+  const accessPanel = document.getElementById('access-panel');
+  const accessShared = document.getElementById('access-shared');
+  const accessStatus = document.getElementById('access-status');
+  const accessBadge = document.getElementById('access-badge');
+
+  /* ---------- Source / copy (visitors only) ---------- */
+
   function toggleSource() {
-    const rendered = document.getElementById('note-rendered');
-    const source = document.getElementById('note-source');
-    const btn = document.getElementById('toggle-source-btn');
-    const copyBtn = document.getElementById('copy-source-btn');
-    
+    if (!source || !rendered) return;
+
     if (rendered.style.display === 'none') {
       rendered.style.display = 'block';
       source.style.display = 'none';
-      btn.textContent = 'Source';
+      sourceBtn.textContent = 'Source';
       copyBtn.style.display = 'none';
     } else {
       rendered.style.display = 'none';
       source.style.display = 'block';
-      btn.textContent = 'Preview';
+      sourceBtn.textContent = 'Preview';
       copyBtn.style.display = 'inline-block';
     }
   }
 
   function copySource() {
-    const sourceText = document.querySelector('#note-source code').textContent;
-    navigator.clipboard.writeText(sourceText).then(() => {
-      const copyBtn = document.getElementById('copy-source-btn');
+    navigator.clipboard.writeText(noteRaw).then(() => {
       const originalText = copyBtn.textContent;
       copyBtn.textContent = 'Copied!';
       setTimeout(() => { copyBtn.textContent = originalText; }, 2000);
     });
   }
+
+  /* ---------- Client-side topic inversion ---------- */
+
+  let invertNodes = null;
+
+  function applyInvert(invert) {
+    if (!rendered) return;
+
+    if (!invertNodes) {
+      // Keep references to the current nodes so we can restore their order
+      // without rebuilding the DOM (this preserves code buttons and math).
+      invertNodes = Array.from(rendered.children);
+    }
+
+    rendered.replaceChildren();
+
+    if (!invert) {
+      invertNodes.forEach((node) => rendered.appendChild(node));
+      return;
+    }
+
+    const prefix = [];
+    const groups = [];
+    let current = null;
+
+    invertNodes.forEach((node) => {
+      if (node.tagName === 'H1') {
+        current = [node];
+        groups.push(current);
+      } else if (current) {
+        current.push(node);
+      } else {
+        prefix.push(node);
+      }
+    });
+
+    if (groups.length < 2) {
+      invertNodes.forEach((node) => rendered.appendChild(node));
+      return;
+    }
+
+    prefix.forEach((node) => rendered.appendChild(node));
+    groups.slice().reverse().forEach((group) => {
+      group.forEach((node) => rendered.appendChild(node));
+    });
+  }
+
+  function initInvert() {
+    if (!invertToggle || !rendered) return;
+    const topicCount = rendered.querySelectorAll(':scope > h1').length;
+    if (topicCount < 2) {
+      invertToggle.disabled = true;
+      invertToggle.parentElement.title = 'This note has fewer than two # topics';
+    }
+  }
+
+  /* ---------- Access level ---------- */
+
+  const ACCESS_LABELS = { public: '🌐 Everyone', shared: '👥 Shared', private: '🔒 Only me' };
+  const BADGE_LABELS = { public: '', shared: '👥 Shared', private: '🔒 Private' };
+
+  function readAccessForm() {
+    const checkedValues = (name) =>
+      Array.from(accessPanel.querySelectorAll(`input[name="${name}"]:checked`)).map((el) => el.value);
+    return {
+      visibility: (accessPanel.querySelector('input[name="access-level"]:checked') || {}).value || 'public',
+      viewers: checkedValues('access-viewer'),
+      roles: checkedValues('access-role')
+    };
+  }
+
+  function showAccess(access) {
+    let label = ACCESS_LABELS[access.visibility];
+    if (access.visibility === 'shared') {
+      const count = access.viewers.length + access.roles.length;
+      label += count ? ` (${count})` : ' (nobody yet)';
+    }
+    accessBtn.textContent = label;
+    accessShared.hidden = access.visibility !== 'shared';
+    if (accessBadge) {
+      accessBadge.textContent = BADGE_LABELS[access.visibility];
+      accessBadge.style.display = access.visibility === 'public' ? 'none' : '';
+    }
+    updateNavLock(access.visibility);
+  }
+
+  async function saveAccess() {
+    const access = readAccessForm();
+    showAccess(access);
+    accessStatus.textContent = 'Saving…';
+
+    try {
+      const res = await fetch(accessUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(access)
+      });
+      if (!res.ok) throw new Error('Request failed (' + res.status + ')');
+      showAccess(await res.json());
+      accessStatus.textContent = 'Saved';
+    } catch (err) {
+      accessStatus.textContent = 'Could not save: ' + err.message;
+    }
+  }
+
+  function initAccess() {
+    if (!accessBtn || !accessPanel) return;
+    showAccess(readAccessForm());
+
+    accessBtn.addEventListener('click', () => {
+      accessPanel.hidden = !accessPanel.hidden;
+      accessBtn.setAttribute('aria-expanded', String(!accessPanel.hidden));
+      accessStatus.textContent = '';
+    });
+    accessPanel.addEventListener('change', saveAccess);
+
+    document.addEventListener('click', (e) => {
+      if (!accessPanel.hidden && !e.target.closest('.access-control')) {
+        accessPanel.hidden = true;
+        accessBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !accessPanel.hidden) {
+        accessPanel.hidden = true;
+        accessBtn.setAttribute('aria-expanded', 'false');
+        accessBtn.focus();
+      }
+    });
+  }
+
+  function updateNavLock(visibility) {
+    const icon = { shared: ['👥', 'Shared note'], private: ['🔒', 'Private note'] }[visibility];
+
+    document.querySelectorAll('.nav-link').forEach((link) => {
+      if (link.pathname !== window.location.pathname) return;
+
+      let existing = link.querySelector('.nav-lock');
+      if (icon && !existing) {
+        existing = document.createElement('span');
+        existing.className = 'nav-lock';
+        link.prepend(existing);
+        link.insertBefore(document.createTextNode(' '), existing.nextSibling);
+      } else if (!icon && existing) {
+        if (existing.nextSibling && existing.nextSibling.nodeType === 3) {
+          existing.nextSibling.remove();
+        }
+        existing.remove();
+        return;
+      }
+      if (icon) {
+        existing.textContent = icon[0];
+        existing.title = icon[1];
+      }
+    });
+  }
+
+  /* ---------- Runnable code blocks ---------- */
+
+  function initCodeBlocks() {
+    if (!rendered) return;
+    const canRun = window.NOTEWALL_CAN_RUN === true;
+
+    rendered.querySelectorAll('pre').forEach((pre) => {
+      if (pre.closest('.code-block')) return;
+      const code = pre.querySelector('code');
+      if (!code) return;
+
+      const langClass = Array.from(code.classList).find((c) => c.startsWith('language-'));
+      const lang = langClass ? langClass.slice('language-'.length).toLowerCase() : '';
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'code-block';
+      pre.parentNode.insertBefore(wrapper, pre);
+      wrapper.appendChild(pre);
+
+      const toolbar = document.createElement('div');
+      toolbar.className = 'code-toolbar';
+
+      const label = document.createElement('span');
+      label.className = 'code-lang';
+      label.textContent = lang || 'code';
+      toolbar.appendChild(label);
+
+      const actions = document.createElement('div');
+      actions.className = 'code-actions';
+
+      const copyCodeBtn = document.createElement('button');
+      copyCodeBtn.type = 'button';
+      copyCodeBtn.className = 'code-btn';
+      copyCodeBtn.textContent = 'Copy';
+      copyCodeBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(code.textContent);
+          copyCodeBtn.textContent = 'Copied!';
+        } catch (err) {
+          copyCodeBtn.textContent = 'Copy failed';
+        }
+        setTimeout(() => { copyCodeBtn.textContent = 'Copy'; }, 1500);
+      });
+      actions.appendChild(copyCodeBtn);
+
+      const runnable = ['js', 'javascript', 'css', 'html'].includes(lang);
+      if (canRun && runnable) {
+        const runBtn = document.createElement('button');
+        runBtn.type = 'button';
+        runBtn.className = 'code-btn code-btn-run';
+        runBtn.textContent = lang === 'css' ? 'Apply CSS' : lang === 'html' ? 'Preview HTML' : 'Run JS';
+        runBtn.addEventListener('click', () => runCodeBlock(wrapper, code, lang, runBtn));
+        actions.appendChild(runBtn);
+      }
+
+      toolbar.appendChild(actions);
+      wrapper.insertBefore(toolbar, pre);
+    });
+  }
+
+  function runCodeBlock(wrapper, code, lang, btn) {
+    const src = code.textContent;
+
+    if (lang === 'js' || lang === 'javascript') {
+      try {
+        const result = new Function(src)();
+        btn.textContent = 'Ran ✓';
+        if (result !== undefined) console.log('[Notewall]', result);
+      } catch (err) {
+        btn.textContent = 'Error';
+        console.error('[Notewall] JavaScript error:', err);
+        alert('JavaScript error: ' + err.message);
+      }
+      setTimeout(() => { btn.textContent = 'Run JS'; }, 1800);
+      return;
+    }
+
+    if (lang === 'css') {
+      let style = wrapper.querySelector('style.notewall-run-css');
+      if (style) {
+        style.remove();
+        btn.textContent = 'Apply CSS';
+      } else {
+        style = document.createElement('style');
+        style.className = 'notewall-run-css';
+        style.textContent = src;
+        wrapper.appendChild(style);
+        btn.textContent = 'Remove CSS';
+      }
+      return;
+    }
+
+    if (lang === 'html') {
+      let preview = wrapper.querySelector('.html-preview');
+      if (preview) {
+        preview.remove();
+        btn.textContent = 'Preview HTML';
+      } else {
+        preview = document.createElement('div');
+        preview.className = 'html-preview';
+        preview.innerHTML = src;
+        wrapper.appendChild(preview);
+        btn.textContent = 'Close Preview';
+      }
+    }
+  }
+
+  /* ---------- Boot ---------- */
+
+  if (invertToggle) {
+    invertToggle.addEventListener('change', () => applyInvert(invertToggle.checked));
+  }
+  initCodeBlocks();
+  initInvert();
+  initAccess();
 </script>
+
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+      processEscapes: true
+    },
+    options: {
+      skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+  };
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+{% endblock %}
+
+{% block scripts %}
+{% if access.js %}
+<script id="note-custom-js">{{ access.js | safe }}</script>
+{% endif %}
 {% endblock %}

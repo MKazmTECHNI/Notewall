@@ -12,7 +12,7 @@
     {% if notes %}
       {% for note in notes %}
       <a href="{{ url_for('view_note', slug=note.slug) }}" class="note-card">
-        <h3>{{ note.name }}</h3>
+        <h3>{% if logged_in and note.visibility == 'private' %}<span title="Private note">🔒</span> {% elif logged_in and note.visibility == 'shared' %}<span title="Shared note">👥</span> {% endif %}{{ note.name }}</h3>
         <span class="note-card-arrow">→</span>
       </a>
       {% endfor %}

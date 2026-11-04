@@ -11,6 +11,12 @@ A lightweight, file-based Markdown notes app with a simple CMS. Built with Pytho
 - **File-based storage** — Notes are plain .md files, no database needed
 - **Markdown rendering** — Full support with syntax highlighting, automatic TOC, and subtopic toggle
 - **Upload Images** — Image upload system integrated directly into the editor
+- **Sharing** – Every note is public, private, or shared with chosen viewers/roles who sign in with an access key or link (optional expiry date, last-seen activity)
+- **Protected images** – Uploaded images only load for people who can read a note that uses them
+- **Search** – Full-text search over every note you can read (press `/` anywhere)
+- **Note links** – `[[Note name]]` or `[[Note name|label]]` links, with a "Linked from" list on each note
+- **Version history** – Every save keeps the previous version; compare and restore from the History page
+- **Per-note CSS/JS** – Custom code that only loads on the note it belongs to
 - **Simple CMS** — Create, edit, and delete notes from the browser
 - **Source Copy feature** — Preview markdown source code without entering edit mode
 - **Dark/Light themes** — Easy on the eyes (not lightmode, tfu, I struggle not to delete it)
@@ -46,7 +52,7 @@ python app.py
 `
 
 Opens on http://localhost:5000 (or whichever port you configured).
-Images uploaded to notes are saved within the static/uploads directory.
+Images uploaded to notes are saved in the uploads/ directory.
 
 #### ! - Beware, it might differ based on your OS. - !
 

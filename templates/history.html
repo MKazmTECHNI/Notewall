@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}History: {{ title }} | Notewall{% endblock %}
+
+{% block content %}
+<div class="history-page">
+  <header class="note-header">
+    <h1>History: {{ title }}</h1>
+    <div class="note-actions">
+      {% if version %}
+      <a href="{{ url_for('note_history', slug=slug) }}" class="btn btn-secondary">All versions</a>
+      {% endif %}
+      {% if exists %}
+      <a href="{{ url_for('view_note', slug=slug) }}" class="btn btn-secondary">Back to note</a>
+      {% endif %}
+    </div>
+  </header>
+
+  {% if version %}
+  <section class="history-version">
+    <div class="history-version-bar">
+      <p>
+        Version from <strong>{{ version.saved.strftime('%Y-%m-%d %H:%M') }}</strong>
+        ({{ version.saved | ago }}). Lines marked <span class="diff-key diff-add">+</span> come back
+        and <span class="diff-key diff-del">−</span> go away if you restore it.
+      </p>
+      <form action="{{ url_for('restore_version', slug=slug, version_id=version.id) }}" method="POST" onsubmit="return confirm('Restore this version? The current text is kept in history.')">
+        <button type="submit" class="btn btn-primary">Restore this version</button>
+      </form>
+    </div>
+
+    {% if diff %}
+    <pre class="diff"><code>{% for kind, line in diff -%}
+<span class="diff-line diff-{{ {'+': 'add', '-': 'del', '@': 'hunk', ' ': 'ctx'}[kind] }}">{{ line }}</span>{% endfor %}</code></pre>
+    {% else %}
+    <p class="empty-state">This version is identical to the current note.</p>
+    {% endif %}
+  </section>
+  {% else %}
+  <p class="settings-help history-help">
+    A version is saved every time you change the note (the last 50 are kept).
+    {% if not exists %}This note was deleted — restore a version to bring it back.{% endif %}
+  </p>
+  {% if versions %}
+  <ul class="history-list">
+    {% for v in versions %}
+    <li>
+      <a href="{{ url_for('note_version', slug=slug, version_id=v.id) }}" class="history-item">
+        <span class="history-when">
+          <strong>{{ v.saved.strftime('%Y-%m-%d %H:%M') }}</strong>
+          <small>{{ v.saved | ago }}</small>
+        </span>
+        <span class="history-changes">
+          {% if v.added or v.removed %}
+          <span class="diff-add">+{{ v.added }}</span> <span class="diff-del">−{{ v.removed }}</span>
+          {% else %}same as now{% endif %}
+        </span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty-state">No earlier versions yet. They appear after you edit the note.</p>
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

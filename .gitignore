@@ -19,6 +19,10 @@ build/
 # Settings (user-specific)
 settings.json
 
+# Private-note index
+.private_notes.json
+.notewall.json
+
 # IDE
 .vscode/
 .idea/
@@ -29,6 +33,6 @@ settings.json
 .DS_Store
 Thumbs.db
 
-# Uploaded images
-
+# Uploaded images (served through an access check, not from static/)
+uploads/
 static/uploads/*
