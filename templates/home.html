@@ -16,8 +16,13 @@
         <span class="note-card-arrow">→</span>
       </a>
       {% endfor %}
+    {% elif logged_in %}
+      <p class="empty-state">No notes yet. <a href="{{ url_for('new_note') }}">Create your first note!</a></p>
     {% else %}
-      <p class="empty-state">No notes yet. Create your first note!</p>
+      <p class="empty-state">
+        There's no notes… or they're hidden from you.<br>
+        Try it yourself at <a href="https://github.com/MKazmTECHNI/Notewall" target="_blank" rel="noopener">github.com/MKazmTECHNI/Notewall</a>
+      </p>
     {% endif %}
   </div>
 </div>

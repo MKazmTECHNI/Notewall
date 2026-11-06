@@ -40,6 +40,8 @@
         <a href="{{ url_for('view_note', slug=note.slug) }}" class="nav-link">
           {% if logged_in and note.visibility == 'private' %}<span class="nav-lock" title="Private note">🔒</span> {% elif logged_in and note.visibility == 'shared' %}<span class="nav-lock" title="Shared note">👥</span> {% endif %}{{ note.name }}
         </a>
+        {% else %}
+        <p class="nav-empty">No notes to show</p>
         {% endfor %}
       </nav>
       <div class="sidebar-footer">

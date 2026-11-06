@@ -197,6 +197,30 @@
     });
   }
 
+  /* Spis treści follows the same order: top-level entries that point at a
+     # topic are reversed, anything before them stays put. */
+  let tocItems = null;
+
+  function applyTocInvert(invert) {
+    const list = document.querySelector('#note-toc .toc > ul');
+    if (!list) return;
+    if (!tocItems) tocItems = Array.from(list.children);
+
+    const topicIds = new Set(
+      Array.from(rendered.querySelectorAll(':scope > h1[id]')).map((h) => h.id)
+    );
+    const isTopic = (li) => {
+      const link = li.querySelector(':scope > a');
+      return link && topicIds.has(decodeURIComponent(link.hash.slice(1)));
+    };
+
+    const topics = tocItems.filter(isTopic);
+    const ordered = invert && topics.length >= 2
+      ? tocItems.filter((li) => !isTopic(li)).concat(topics.reverse())
+      : tocItems;
+    list.replaceChildren(...ordered);
+  }
+
   function initInvert() {
     if (!invertToggle || !rendered) return;
     const topicCount = rendered.querySelectorAll(':scope > h1').length;
@@ -417,7 +441,10 @@
   /* ---------- Boot ---------- */
 
   if (invertToggle) {
-    invertToggle.addEventListener('change', () => applyInvert(invertToggle.checked));
+    invertToggle.addEventListener('change', () => {
+      applyInvert(invertToggle.checked);
+      applyTocInvert(invertToggle.checked);
+    });
   }
   initCodeBlocks();
   initInvert();
